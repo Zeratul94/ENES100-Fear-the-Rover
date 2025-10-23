@@ -1,11 +1,19 @@
+//libraries
 #include "Enes100.h"
 
+//pin assignments
+int TX_PIN = 10;
+int RX_PIN = 11;
+int AcUro_ID = 97;
 void setup() {
     // Initialize Enes100 Library
     // Team Name, Mission Type, Marker ID, Room Number, Wifi Module TX Pin, Wifi Module RX Pin
-    Enes100.begin("Fear The Rover", MATERIAL, #unsure, 1116, 10, 11);
+    Enes100.isConnected();
+    Enes100.begin("Fear The Rover", MATERIAL, AcUro_ID, 1116, TX_PIN, RX_PIN);
     // At this point we know we are connected.
     Enes100.println("Connected...");
+    Enes100.print("Hello World!");
+    delay(100000);
 }
 
 void loop() {
@@ -28,8 +36,4 @@ void loop() {
         Enes100.println("Not visible"); 
     }
     
-    Enes100.mission(WEIGHT, LIGHT);
-    // Transmit the MATERIAL_TYPE of the material (Foam or Plastic, in this case FOAM)
-    Enes100.mission(MATERIAL_TYPE, FOAM);
-    delay(1000);
 }
