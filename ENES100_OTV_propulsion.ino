@@ -2,12 +2,11 @@
 /*Libraries */
 #include <Servo.h>
 #include "Enes100.h"
-
-
+#include "HX711.h"
 
 /* Objects */
 Servo claw_servo;
-
+HX711 scale;
 
 /* Pins (FILLER VALUES RIGHT NOW)*/
 const int fr_foward_pin = 0;     //PWM digital
@@ -28,6 +27,9 @@ const int claw_backward_pin = 9; //PWM digital
 const int servo_sg_pin = 10;     //PWM digital
 const int servo_feedback = 11;   //analog
 
+const int loadcell_dout_pin = 12;
+const int loadcell_sck_pin = 13;
+
 /* Other constants (FILLER VALUES RIGHT NOW) */
 const double fr_nav_input = .15;
 const double fl_nav_input = .15;
@@ -43,6 +45,7 @@ const double br_rot_input = .15;
 const double bl_rot_input = .15;
 
 const double rot_speed = 3.14/2; // Get through testing Units:rot/sec
+
 
 //distance in cm
 void move_foward(double distance) {
@@ -129,8 +132,9 @@ double read_servo(double angle){
 }
 
 void setup() {
+  //instantiate objects
   claw_servo.attach(servo_sg_pin);
-
+  scale.begin(loadcell_dout_pin, loadcell_sck_pin);
 
 }
 
@@ -138,4 +142,5 @@ void loop() {
   // put your main code here, to run repeatedly:
 
 }
+
 
