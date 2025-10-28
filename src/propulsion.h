@@ -1,5 +1,46 @@
-#ifndef MY_FUNCTIONS_H // Include guards to prevent multiple inclusions
-#define MY_FUNCTIONS_H
+// #include <Servo.h>
+#ifndef propulsion_h // Include guards to prevent multiple inclusions
+#define propulsion_h
+
+/* Pins (FILLER VALUES RIGHT NOW)*/
+inline constexpr char fr_foward_pin = 0;     //PWM digital
+inline constexpr char fr_backward_pin = 1;   //PWM digital
+
+inline constexpr char fl_foward_pin = 2;     //PWM digital
+inline constexpr char fl_backward_pin = 3;   //PWM digital
+
+inline constexpr char br_foward_pin = 4;     //PWM digital
+inline constexpr char br_backward_pin = 5;   //PWM digital
+
+inline constexpr char bl_foward_pin = 6;     //PWM digital
+inline constexpr char bl_backward_pin = 7;   //PWM digital
+
+inline constexpr char claw_foward_pin = 8;   //PWM digital
+inline constexpr char claw_backward_pin = 9; //PWM digital
+
+inline constexpr char servo_sg_pin = 10;     //PWM digital
+inline constexpr char servo_feedback = 11;   //analog
+
+inline constexpr char loadcell_dout_pin = 12;
+inline constexpr char loadcell_sck_pin = 13;
+
+/* Other constants (FILLER VALUES RIGHT NOW) */
+inline constexpr double fr_nav_input = .15;
+inline constexpr double fl_nav_input = .15;
+inline constexpr double br_nav_input = .15;
+inline constexpr double bl_nav_input = .15;
+
+inline constexpr double nav_speed = 8; // Get through testing Units: cm/sec
+inline constexpr double strafe_speed = 8; //get through testing Units: cm.sec
+
+inline constexpr double fr_rot_input = .15;
+inline constexpr double fl_rot_input = .15;
+inline constexpr double br_rot_input = .15;
+inline constexpr double bl_rot_input = .15;
+
+inline constexpr double in_front_tolerance = 15.0; //cm
+
+inline constexpr double rot_speed = 3.14/2; // Get through testing Units:rot/sec
 
 //distance in cm
 void move_forward(double distance);
@@ -19,6 +60,6 @@ void spin_CW(double radians);
 
 void set_servo(double angle);
 
-double read_servo(double angle);
+double read_servo(Servo servo, double angle);
 
 #endif
