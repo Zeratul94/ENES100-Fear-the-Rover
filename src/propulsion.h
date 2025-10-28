@@ -3,26 +3,32 @@
 #define propulsion_h
 
 /* Pins (FILLER VALUES RIGHT NOW)*/
-inline constexpr char fr_foward_pin = 0;     //PWM digital
-inline constexpr char fr_backward_pin = 1;   //PWM digital
+inline constexpr char fr_foward_pin = 0;     // PWM digital
+inline constexpr char fr_backward_pin = 1;   // PWM digital
 
-inline constexpr char fl_foward_pin = 2;     //PWM digital
-inline constexpr char fl_backward_pin = 3;   //PWM digital
+inline constexpr char fl_foward_pin = 2;     // PWM digital
+inline constexpr char fl_backward_pin = 3;   // PWM digital
 
-inline constexpr char br_foward_pin = 4;     //PWM digital
-inline constexpr char br_backward_pin = 5;   //PWM digital
+inline constexpr char br_foward_pin = 4;     // PWM digital
+inline constexpr char br_backward_pin = 5;   // PWM digital
 
-inline constexpr char bl_foward_pin = 6;     //PWM digital
-inline constexpr char bl_backward_pin = 7;   //PWM digital
+inline constexpr char bl_foward_pin = 6;     // PWM digital
+inline constexpr char bl_backward_pin = 7;   // PWM digital 
 
-inline constexpr char claw_foward_pin = 8;   //PWM digital
-inline constexpr char claw_backward_pin = 9; //PWM digital
+inline constexpr char claw_foward_pin = 8;   // PWM digital
+inline constexpr char claw_backward_pin = 9; // PWM digital
 
-inline constexpr char servo_sg_pin = 10;     //PWM digital
-inline constexpr char servo_feedback = 11;   //analog
+inline constexpr char servo_sg_pin = 10;     // PWM digital
+inline constexpr char servo_feedback = 11;   // analog
 
-inline constexpr char loadcell_dout_pin = 12;
-inline constexpr char loadcell_sck_pin = 13;
+inline constexpr char tx_pin = 12; // Wi-Fi Module
+inline constexpr char rx_pin = 13; // Wi-Fi Module
+inline constexpr char aruco_ID = 97;
+
+inline constexpr char loadcell_dout_pin = 14;
+inline constexpr char loadcell_sck_pin = 15;
+
+inline constexpr char uss_pins[4] = {16, 17, 18, 19}; // Ultrasonic Sensors
 
 /* Other constants (FILLER VALUES RIGHT NOW) */
 inline constexpr double fr_nav_input = .15;
