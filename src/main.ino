@@ -10,10 +10,17 @@ HX711 scale;
 
 // State values
 double heading;
+bool cube_material; // true = squishy foam, false = hard plastic
+char cube_weight; // 0 = lightest weight class, then 1, then 2 is heaviest
 
 void setup() {
-  // Attach debug serial port
-  Serial.begin(9600);
+  // Initializes ENES100 transmit/receive
+  Enes100.isConnected();
+  Enes100.begin("Fear The Rover", MATERIAL, aruco_ID, 1116, tx_pin, rx_pin);
+  Enes100.println("Connected...");
+  Enes100.print("Hello World!");
+  delay(100000);
+
   // Initialize objects
   claw_servo.attach(servo_sg_pin);
   scale.begin(loadcell_dout_pin, loadcell_sck_pin);
@@ -23,9 +30,13 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  heading = Enes100.getTheta() ? Enes100.isVisible() : heading; // Make sure of our heading between mission steps
+  navigate_to_mission();
+  heading = Enes100.getTheta() ? Enes100.isVisible() : heading; // Make sure of our heading between mission steps
+  complete_mission();
 
   // Find our way past the obstacles to the endzone
+  heading = Enes100.getTheta() ? Enes100.isVisible() : heading; // Make sure of our heading between mission steps
   navigate_to_endzone();
 }
 
@@ -45,7 +56,7 @@ void navigate_to_endzone() {
           if (sensor_R() <= in_front_tolerance) {
             // If we've reached the right wall, after checking the left wall,
             // there is no way forward! Get angry.
-            print("PANIC! No clear path found!");
+            Enes100.println("PANIC! No clear path found!");
             break;
           } else move_right(in_front_tolerance);
         }
