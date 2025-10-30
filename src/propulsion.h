@@ -3,19 +3,19 @@
 #define propulsion_h
 
 /* Pins (FILLER VALUES RIGHT NOW)*/
-inline constexpr char fr_foward_pin = 0;     // PWM digital
+inline constexpr char fr_forward_pin = 0;     // PWM digital
 inline constexpr char fr_backward_pin = 1;   // PWM digital
 
-inline constexpr char fl_foward_pin = 2;     // PWM digital
+inline constexpr char fl_forward_pin = 2;     // PWM digital
 inline constexpr char fl_backward_pin = 3;   // PWM digital
 
-inline constexpr char br_foward_pin = 4;     // PWM digital
+inline constexpr char br_forward_pin = 4;     // PWM digital
 inline constexpr char br_backward_pin = 5;   // PWM digital
 
-inline constexpr char bl_foward_pin = 6;     // PWM digital
+inline constexpr char bl_forward_pin = 6;     // PWM digital
 inline constexpr char bl_backward_pin = 7;   // PWM digital 
 
-inline constexpr char claw_foward_pin = 8;   // PWM digital
+inline constexpr char claw_forward_pin = 8;   // PWM digital
 inline constexpr char claw_backward_pin = 9; // PWM digital
 
 inline constexpr char servo_sg_pin = 10;     // PWM digital
