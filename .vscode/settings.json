@@ -5,6 +5,8 @@
         "cmath": "cpp",
         "complex": "cpp",
         "valarray": "cpp",
-        "cstdlib": "cpp"
+        "cstdlib": "cpp",
+        "ostream": "cpp",
+        "print": "cpp"
     }
 }

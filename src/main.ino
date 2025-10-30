@@ -1,6 +1,7 @@
 // #include <Arduino.h>
 // #include <Servo.h>
 // #include "Enes100.h"
+// #include <HX711.h>
 #include <propulsion.h>
 #include <cstdlib>
 
@@ -9,9 +10,14 @@ Servo claw_servo;
 HX711 scale;
 
 // State values
+MissionState mission_state = GO_TO_CUBE;
 double heading;
 bool cube_material; // true = squishy foam, false = hard plastic
 char cube_weight; // 0 = lightest weight class, then 1, then 2 is heaviest
+double position[2];
+
+short loopctr;
+double startpos[2];
 
 void setup() {
   // Initializes ENES100 transmit/receive
@@ -26,21 +32,97 @@ void setup() {
   scale.begin(loadcell_dout_pin, loadcell_sck_pin);
 
   // Initialize state
+  mission_state = GO_TO_CUBE;
   heading = 0.;
+  position[0] = 0; position[1] = 0;
+  loopctr = 0;
 }
 
 void loop() {
-  heading = Enes100.getTheta() ? Enes100.isVisible() : heading; // Make sure of our heading between mission steps
-  navigate_to_mission();
-  heading = Enes100.getTheta() ? Enes100.isVisible() : heading; // Make sure of our heading between mission steps
-  complete_mission();
+  heading = Enes100.getTheta();
+  position[0] = Enes100.getX(); position[1] = Enes100.getY();
+  switch (mission_state) {
+    case GO_TO_CUBE:
+      navigate_to_mission();
+      break;
+    case ADJUST_POSITION:
+      adjust_position();
+      break;
+    case GRAB_CUBE:
+      complete_mission();
+      break;
+    case DROP_CUBE:
+      drop_cube();
+      break;
+    case NAVIGATE_ENDZONE:
+      navigate_to_endzone();
+      break;
+    default:
+      Enes100.println("PANIC! Undefined mission state!");
+      break;
+  }
 
-  // Find our way past the obstacles to the endzone
-  heading = Enes100.getTheta() ? Enes100.isVisible() : heading; // Make sure of our heading between mission steps
-  navigate_to_endzone();
+  loopctr++;
 }
 
-void navigate_to_endzone() {
+void navigate_to_mission() {
+  // On the first loop, try to face toward the mission
+  if (loopctr == 0) {
+    Enes100.println("Navigating to mission...");
+    spin((90 ? heading < 0 : -90) - heading); // Face toward the mission location
+    return;
+  }
+
+  // Subsequent loops: if we're facing the mission, move up if it's clear!
+  if (close_enough(heading, 90, heading_epsilon) || close_enough(heading, -90, heading_epsilon)) {
+    if (sensor_FL() >= in_front_tolerance && sensor_FR() >= in_front_tolerance) {
+      move_forward(in_front_tolerance);
+    // If it's not clear, we must have gotten to the cube
+    } else {
+      Enes100.println("Cube detected!");
+      mission_state = ADJUST_POSITION;
+      loopctr = 0;
+    }
+  // If we're facing the wrong way, adjust
+  } else {
+    spin((90 - heading) ? heading > 0 : (-90 - heading)); // Face toward the mission location
+  }
+}
+
+// Place the OTV so that both sensors pick up the cube
+// GEDALYA ASSUMES that this will mean the cube is centered and at
+// grabbing distance
+void adjust_position() {
+  Enes100.println("Adjusting position...");
+  bool left_detect = sensor_FL() <= grab_distance;
+  bool right_detect = sensor_FR() <= grab_distance;
+  bool centered = close_enough(sensor_FL(), sensor_FR(), centering_epsilon);
+  
+  if (left_detect && right_detect && centered) {
+    if (close_enough((sensor_FL() + sensor_FR())/2, grab_distance, grab_lineal_epsilon)) {
+      Enes100.println("Positioned and ready!");
+      mission_state = GRAB_CUBE;
+      loopctr = 0;
+      return;
+    } else {
+      move_backward(grab_lineal_epsilon/2);
+      return;
+    }
+  }
+
+  if (left_detect) {
+    move_left(centering_epsilon/2);
+  } else if (right_detect) {
+    move_right(centering_epsilon/2);
+  }
+
+  if (!left_detect && !right_detect) {
+    move_forward(grab_lineal_epsilon/2);
+    return;
+  }
+}
+
+void navigate_to_endzone() { // OLD
   bool checked_left = false;
   bool in_endzone = false;
   // Loop through these instructions until we get there
@@ -65,7 +147,7 @@ void navigate_to_endzone() {
         checked_left = false;
       }
     } else { // Otherwise, fix our heading and then assume we're oriented the right way
-      if (heading > 0) spin_CW(heading); else spin_CCW(heading);
+      spin(heading);
       heading = 0;
     }
   }
@@ -74,8 +156,8 @@ void navigate_to_endzone() {
 bool close_enough(float f1, float f2) {
   return (abs(f1 - f2) < 0.1);
 }
-bool close_enough(float f1, float f2, float tolerance) {
-  return (abs(f1 - f2) < tolerance);
+bool close_enough(float f1, float f2, float epsilon) {
+  return (abs(f1 - f2) < epsilon);
 }
 
 float sensor_L () {

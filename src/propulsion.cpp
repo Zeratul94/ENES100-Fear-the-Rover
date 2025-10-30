@@ -58,28 +58,29 @@ void move_left(double distance) {
   analogWrite(br_backward_pin, 0);
 }
 
-void spin_CCW(double radians) {
-  analogWrite(fl_backward_pin, fl_nav_input);
-  analogWrite(fr_foward_pin, fr_nav_input);
-  analogWrite(bl_backward_pin, bl_nav_input);
-  analogWrite(br_foward_pin, br_nav_input);
-  delay((radians/rot_speed)*1000);
-  analogWrite(fl_backward_pin, 0);
-  analogWrite(fr_foward_pin, 0);
-  analogWrite(bl_backward_pin, 0);
-  analogWrite(br_foward_pin, 0);
-}
-
-void spin_CW(double radians) {
-  analogWrite(fl_foward_pin, fl_nav_input);
-  analogWrite(fr_backward_pin, fr_nav_input);
-  analogWrite(bl_foward_pin, bl_nav_input);
-  analogWrite(br_backward_pin, br_nav_input);
-  delay((radians/rot_speed)*1000);
-  analogWrite(fl_foward_pin, 0);
-  analogWrite(fr_backward_pin, 0);
-  analogWrite(bl_foward_pin, 0);
-  analogWrite(br_backward_pin, 0);
+// degrees > 0 means CW, < 0 means CCW
+void spin(double degs) {
+  if (degs >= 0) {
+    analogWrite(fl_foward_pin, fl_nav_input);
+    analogWrite(fr_backward_pin, fr_nav_input);
+    analogWrite(bl_foward_pin, bl_nav_input);
+    analogWrite(br_backward_pin, br_nav_input);
+    delay((degs/rot_speed)*1000);
+    analogWrite(fl_foward_pin, 0);
+    analogWrite(fr_backward_pin, 0);
+    analogWrite(bl_foward_pin, 0);
+    analogWrite(br_backward_pin, 0);
+  } else {
+    analogWrite(fl_backward_pin, fl_nav_input);
+    analogWrite(fr_foward_pin, fr_nav_input);
+    analogWrite(bl_backward_pin, bl_nav_input);
+    analogWrite(br_foward_pin, br_nav_input);
+    delay((degs/rot_speed)*1000);
+    analogWrite(fl_backward_pin, 0);
+    analogWrite(fr_foward_pin, 0);
+    analogWrite(bl_backward_pin, 0);
+    analogWrite(br_foward_pin, 0);
+  }
 }
 
 void set_servo(Servo servo, double angle) {
