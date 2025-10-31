@@ -1,9 +1,9 @@
-// #include <Arduino.h>
-// #include <Servo.h>
-// #include "Enes100.h"
-// #include <HX711.h>
-#include <propulsion.h>
-#include <cstdlib>
+#include "Arduino.h"
+#include "Servo.h"
+#include <Propulsion.h>
+#include "Enes100.h"
+#include "HX711.h"
+#include <stdlib.h>
 
 /* Objects */
 Servo claw_servo;
@@ -49,10 +49,10 @@ void loop() {
       adjust_position();
       break;
     case GRAB_CUBE:
-      complete_mission();
+      //complete_mission();
       break;
     case DROP_CUBE:
-      drop_cube();
+      //drop_cube();
       break;
     case NAVIGATE_ENDZONE:
       navigate_to_endzone();

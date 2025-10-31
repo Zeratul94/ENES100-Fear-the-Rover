@@ -1,4 +1,5 @@
-// #include <Servo.h>
+#include "Servo.h"
+
 #ifndef propulsion_h // Include guards to prevent multiple inclusions
 #define propulsion_h
 
