@@ -179,7 +179,7 @@ void stop_motor() {
 
 
 
-void setup() {
+void setup() { //press reset, turn on, turn off, turn on
   stop_motor();
   delay(500);
   move_foward();
