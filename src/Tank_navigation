@@ -36,7 +36,7 @@ void loop() {
   }
 
 //face towards mission
-  if(y > 0){
+  if(y > 1){
     Tank.setLeftMotorPWM(255);
     Tank.setRightMotorPWM(-255);
   } else{
