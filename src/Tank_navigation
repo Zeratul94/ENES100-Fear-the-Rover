@@ -1,0 +1,98 @@
+#include "Tank.h"
+#include "Enes100.h"
+
+void setup() {
+  // put your setup code here, to run once:
+  Tank.begin();
+  Enes100.begin("Fear The Rover", MATERIAL, 19, 1116, 52, 50);
+}
+
+void loop() {
+  
+  //t = theta
+  int t = Enes100.getTheta();
+  //y = Y pos
+  int y = Enes100.getY();
+
+  //face towards 0
+  if(t > 0){
+    //rotate right
+    Tank.setLeftMotorPWM(255);
+    Tank.setRightMotorPWM(-255);
+
+    delay(abs(t) * 2670/PI); //2670 = pi
+
+    Tank.setLeftMotorPWM(0);
+    Tank.setRightMotorPWM(0);
+  } else {
+    //rotate left
+    Tank.setLeftMotorPWM(-255);
+    Tank.setRightMotorPWM(255);
+
+    delay(abs(t) * 2670/PI); //2670 = pi
+
+    Tank.setLeftMotorPWM(0);
+    Tank.setRightMotorPWM(0);
+  }
+
+//face towards mission
+  if(y > 0){
+    Tank.setLeftMotorPWM(255);
+    Tank.setRightMotorPWM(-255);
+  } else{
+    Tank.setLeftMotorPWM(-255);
+    Tank.setRightMotorPWM(255);
+  }
+  
+
+  delay(2670/2); //2670 = pi
+
+  Tank.setLeftMotorPWM(0);
+  Tank.setRightMotorPWM(0);
+  
+  //we are facing the mission site
+  Tank.setLeftMotorPWM(255);
+  Tank.setRightMotorPWM(255);
+
+  delay(4762);
+
+  Tank.setLeftMotorPWM(0);
+  Tank.setRightMotorPWM(0);
+
+  delay(3000);
+
+  t = Enes100.getTheta();
+
+  //face towards 0
+  if(t > 0){
+    //rotate right
+    Tank.setLeftMotorPWM(255);
+    Tank.setRightMotorPWM(-255);
+
+    delay(abs(t) * 2670/PI); //2670 = pi
+
+    Tank.setLeftMotorPWM(0);
+    Tank.setRightMotorPWM(0);
+  } else {
+    //rotate left
+    Tank.setLeftMotorPWM(-255);
+    Tank.setRightMotorPWM(255);
+
+    delay(abs(t) * 2670/PI); //2670 = pi
+
+    Tank.setLeftMotorPWM(0);
+    Tank.setRightMotorPWM(0);
+  }
+
+  //we are facing the end zone
+  Tank.setLeftMotorPWM(255);
+  Tank.setRightMotorPWM(255);
+
+  delay(12381); //move 2.6m
+
+  Tank.setLeftMotorPWM(0);
+  Tank.setRightMotorPWM(0);
+
+  delay(10000000); //delay a long time
+
+}
