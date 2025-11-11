@@ -1,13 +1,15 @@
-#include "Arduino.h"
-#include "Servo.h"
-#include <Propulsion.h>
-#include "Enes100.h"
-#include "HX711.h"
+//#include "Arduino.h"
+//#include "Servo.h"
+#include <src/libraries/Propulsion/Propulsion.h>
+//#include "Enes100.h"
+//#include "HX711.h"
 #include <stdlib.h>
+#include <utility>
+#include <iostream>
 
 /* Objects */
-Servo claw_servo;
-HX711 scale;
+//Servo claw_servo;
+//HX711 scale;
 
 // State values
 MissionState mission_state = GO_TO_CUBE;
@@ -15,6 +17,10 @@ double heading;
 bool cube_material; // true = squishy foam, false = hard plastic
 char cube_weight; // 0 = lightest weight class, then 1, then 2 is heaviest
 double position[2];
+
+// Mission values
+CubeMaterial cube_material;
+CubeWeightClass cube_weight;
 
 short loopctr;
 double startpos[2];
@@ -41,6 +47,7 @@ void setup() {
 void loop() {
   heading = Enes100.getTheta();
   position[0] = Enes100.getX(); position[1] = Enes100.getY();
+  set_servo(servo_open_angle); // Initially, make sure our claw is open
   switch (mission_state) {
     case GO_TO_CUBE:
       navigate_to_mission();
@@ -49,10 +56,13 @@ void loop() {
       adjust_position();
       break;
     case GRAB_CUBE:
-      //complete_mission();
+      std::pair<CubeMaterial, CubeWeightClass> cube_info = grab_cube_and_weigh();
+      cube_material = cube_info.first;
+      cube_weight = cube_info.second;
       break;
     case DROP_CUBE:
-      //drop_cube();
+      transmit_data(cube_material, cube_weight);
+      drop_cube();
       break;
     case NAVIGATE_ENDZONE:
       navigate_to_endzone();
@@ -61,7 +71,6 @@ void loop() {
       Enes100.println("PANIC! Undefined mission state!");
       break;
   }
-
   loopctr++;
 }
 
@@ -120,6 +129,58 @@ void adjust_position() {
     move_forward(grab_lineal_epsilon/2);
     return;
   }
+}
+
+std::pair<CubeMaterial, CubeWeightClass> grab_cube_and_weigh() {
+  Enes100.println("Grabbing cube...");
+  set_servo(servo_open_angle); // Open claw
+  delay(500);
+  bool cube_not_hard = true; // Assume the cube is soft until proven otherwise
+  for (byte i = 0; i < 3; i++) { // Try to grab the cube up to 3 times
+    // Close the claw the amount it takes to grab the hard cube
+    set_servo(servo_closed_hard_angle);
+    delay(500);
+    // Assuming we got the cube, put it on the weight plate
+    CubeWeightClass weight_class = weigh_cube();
+    if (true) { // If the weight on the sensor changed
+      cube_not_hard = false;
+      mission_state = DROP_CUBE;
+      loopctr = 0;
+      return std::make_pair(HARD, weight_class); // Return that we have a hard cube, and its weight class from the weighing function
+    }
+    drop_cube(); // If we didn't get it, 'drop' to be ready to try again
+  }
+
+  // If we fail to grab a hard cube, the cube must be soft. Grab it!
+  for (char i = 0; i < 3; i++) { // Try to grab the cube up to 3 times
+    // Close the claw the amount it takes to grab the soft cube
+    set_servo(servo_closed_soft_angle;
+    delay(500);
+    // Assuming we got the cube, put it on the weight plate
+    CubeWeightClass weight_class = weigh_cube();
+    if (true) { // If the weight on the sensor changed
+      cube_not_hard = false;
+      mission_state = DROP_CUBE;
+      loopctr = 0;
+      return std::make_pair(SOFT, weight_class); // Return that we have a soft cube, and its weight class from the weighing function
+    }
+    drop_cube(); // If we didn't get it, 'drop' to be ready to try again
+  }
+
+  // if we reach this point, we failed to grab the cube at all. Get sad.
+  Enes100.println("PANIC! Failed to grab cube!\nReturning default values...");
+  return std::make_pair(SOFT, LIGHT); // Dummy return to satisfy compiler
+}
+
+CubeWeightClass weigh_cube() {
+  // All yours, Julia
+}
+
+void drop_cube() {
+}
+
+void transmit_data(CubeMaterial cube_material, CubeWeightClass cube_weight) {
+
 }
 
 void navigate_to_endzone() { // OLD

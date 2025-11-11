@@ -86,6 +86,6 @@ void set_servo(Servo servo, double angle) {
   servo.write(angle);
 }
 
-double read_servo(double angle){
+double read_servo(){
   return analogRead(servo_feedback);
 }

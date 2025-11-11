@@ -1,4 +1,4 @@
-#include "Servo.h"
+//#include "Servo.h"
 
 #ifndef propulsion_h // Include guards to prevent multiple inclusions
 #define propulsion_h
@@ -36,9 +36,21 @@ enum MissionState{
   GO_TO_CUBE,
   ADJUST_POSITION,
   GRAB_CUBE,
+  WEIGH_CUBE,
   DROP_CUBE,
   NAVIGATE_ENDZONE
 };
+
+enum CubeMaterial {
+  SOFT,
+  HARD
+}
+
+enum CubeWeightClass {
+  LIGHT,
+  MEDIUM,
+  HEAVY
+}
 
 inline constexpr double fr_nav_input = .15;
 inline constexpr double fl_nav_input = .15;
@@ -61,6 +73,10 @@ inline constexpr double grab_lineal_epsilon = 2.0; // cm, acceptable error in di
 
 inline constexpr double rot_speed = 90.; // degrees, Get through testing Units:rot/sec
 
+inline constexpr double servo_open_angle = 0.0;   // arbitrary units, angle of claw servo when open at rest
+inline constexpr double servo_closed_soft_angle = 70.0; // arbitrary units, angle of claw servo when gripping the soft cube
+inline constexpr double servo_closed_hard_angle = 90.0; // arbitrary units, angle of claw servo when gripping the hard cube
+
 //distance in cm
 void move_forward(double distance);
 
@@ -75,8 +91,8 @@ void move_left(double distance);
 
 void spin(double degs);
 
-void set_servo(double angle);
+void set_servo(Servo servo, double angle);
 
-double read_servo(Servo servo, double angle);
+double read_servo();
 
 #endif
