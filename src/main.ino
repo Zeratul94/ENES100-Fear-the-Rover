@@ -25,7 +25,7 @@ void setup() {
   Enes100.begin("Fear The Rover", MATERIAL, aruco_ID, 1116, tx_pin, rx_pin);
   Enes100.println("Connected...");
   Enes100.print("Hello World!");
-  delay(100000);
+  delay(1000);
 
   // Initialize objects
   claw_servo.attach(servo_sg_pin);
