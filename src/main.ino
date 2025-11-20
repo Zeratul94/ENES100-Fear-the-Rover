@@ -121,16 +121,16 @@ bool close_enough(float f1, float f2, float epsilon) {
 }
 
 float sensor_L () {
-  return pulseIn(uss_pins[0], HIGH) * 0.034 / 2;
+  return pulseIn(uss_echo_pins[0], HIGH) * 0.034 / 2;
 }
 float sensor_FL () {
-  return pulseIn(uss_pins[1], HIGH) * 0.034 / 2;
+  return pulseIn(uss_echo_pins[1], HIGH) * 0.034 / 2;
 }
 float sensor_FR () {
-  return pulseIn(uss_pins[2], HIGH) * 0.034 / 2;
+  return pulseIn(uss_echo_pins[2], HIGH) * 0.034 / 2;
 }
 float sensor_R () {
-  return pulseIn(uss_pins[3], HIGH) * 0.034 / 2;
+  return pulseIn(uss_echo_pins[3], HIGH) * 0.034 / 2;
 }
 
 
@@ -162,8 +162,8 @@ inline constexpr char aruco_ID = 97;
 inline constexpr char loadcell_dout_pin = 14;
 inline constexpr char loadcell_sck_pin = 15;
 
-inline constexpr char uss_pins[4] = {16, 17, 18, 19}; // Ultrasonic Sensors
-
+inline constexpr char uss_echo_pins[4] = {30, 32, 34, 36}; // Ultrasonic Sensor receive
+inline constexpr char uss_trig_pins[4] = {31, 33, 35, 37}; // Ultrasonic Sensor pulse (should always be HIGH)
 
 // Movement parameters
 inline constexpr double fr_nav_input = .15;
