@@ -20,21 +20,21 @@ enum MissionState{
 /* SYSTEM PARAMETERS */
 
 // Pins
-char fr_forward_pin = 0;     // PWM digital
-char fr_backward_pin = 1;   // PWM digital
-char fl_forward_pin = 2;     // PWM digital
-char fl_backward_pin = 3;   // PWM digital
-char br_forward_pin = 4;     // PWM digital
-char br_backward_pin = 5;   // PWM digital
-char bl_forward_pin = 6;     // PWM digital
-char bl_backward_pin = 7;   // PWM digital 
-char claw_forward_pin = 8;   // PWM digital
+char fr_forward_pin = 4;     // PWM digital
+char fr_backward_pin = 5;   // PWM digital
+char fl_forward_pin = 10;     // PWM digital
+char fl_backward_pin = 11;   // PWM digital
+char br_forward_pin = 2;     // PWM digital
+char br_backward_pin = 3;   // PWM digital
+char bl_forward_pin = 8;     // PWM digital
+char bl_backward_pin = 9;   // PWM digital 
+char claw_forward_pin = 6;   // PWM digital
 char claw_backward_pin = 9; // PWM digital
 char servo_sg_pin = 10;     // PWM digital
-char servo_feedback = 11;   // analog
-char tx_pin = 12; // Wi-Fi Module
-char rx_pin = 13; // Wi-Fi Module
-char aruco_ID = 97;
+char servo_feedback = 0;   // analog
+char tx_pin = 14; // Wi-Fi Module
+char rx_pin = 15; // Wi-Fi Module
+char aruco_ID = 67;
 char loadcell_dout_pin = 14;
 char loadcell_sck_pin = 15;
 char uss_echo_pins[4] = {30, 32, 34, 36}; // Ultrasonic Sensor receive
@@ -73,7 +73,6 @@ double startpos[2];
 
 void setup() {
   // Initializes ENES100 transmit/receive
-  Serial.begin(9600);
   Enes100.isConnected();
   Enes100.begin("Fear The Rover", MATERIAL, aruco_ID, 1116, tx_pin, rx_pin);
   Enes100.println("Connected...");
@@ -96,29 +95,21 @@ void setup() {
 
 void loop() {
   Serial.println("Starting frame");
-  // heading = Enes100.getTheta();
-  // position[0] = Enes100.getX(); position[1] = Enes100.getY();
-  // switch (mission_state) {
-  //   case GO_TO_CUBE:
-  //     navigate_to_mission();
-  //     break;
-  //   case ADJUST_POSITION:
-  //     adjust_position();
-  //     break;
-  //   default:
-  //     Enes100.println("PANIC! Undefined mission state!");
-  //     break;
-  // }
-  Serial.println("L: ");
-  Serial.print(sensor_L());
-  Serial.println("FL: ");
-  Serial.print(sensor_FL());
-  Serial.println("FR: ");
-  Serial.print(sensor_FR());
-  Serial.println("R: ");
-  Serial.print(sensor_R());
+  heading = Enes100.getTheta();
+  position[0] = Enes100.getX(); position[1] = Enes100.getY();
+  switch (mission_state) {
+    case GO_TO_CUBE:
+      navigate_to_mission();
+      break;
+    // case ADJUST_POSITION:
+    //   adjust_position();
+    //   break;
+    default:
+      Enes100.println("PANIC! Undefined mission state!");
+      break;
+  }
 
-  //loopctr++;
+  loopctr++;
 }
 
 void navigate_to_mission() {
