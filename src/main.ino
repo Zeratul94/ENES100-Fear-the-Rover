@@ -15,8 +15,8 @@ const int fr_backward_pin = 4;   //PWM digital
 const int fl_foward_pin = 10;     //PWM digital
 const int fl_backward_pin = 11;   //PWM digital
 
-const int br_foward_pin = 3;     //PWM digital
-const int br_backward_pin = 2;   //PWM digital
+const int br_foward_pin = 2;     //PWM digital
+const int br_backward_pin = 3;   //PWM digital
 
 const int bl_foward_pin = 8;     //PWM digital
 const int bl_backward_pin = 9;   //PWM digital
@@ -30,29 +30,29 @@ const int retract_pin = 12;     //PWM digital
 const int deploy_pin = 13;      //PWM digital
 
 /* LOADCELL PINS */
-const int loadcell_dout_pin = 6;  //digital
-const int loadcell_sck_pin = 5;   //digital
+const int loadcell_dout_pin = 38;  //digital
+const int loadcell_sck_pin = 39;   //digital
 
 /* COMM PINS */
-const int TX_PIN = 10;  //COMM
-const int RX_PIN = 11;  //COMM
+const int TX_PIN = 14;  //COMM
+const int RX_PIN = 15;  //COMM
 
 /* LIMIT SIWTCH PINS (FILLER)*/
-const int deploy_limit = 23;  //digital
-const int retract_limit = 48; //digital
+const int deploy_limit = 47;  //digital
+const int retract_limit = 46; //digital
 
 /* Other constants (FILLER VALUES RIGHT NOW) */
 const double fr_nav_input = 100;
 const double fl_nav_input = 100;
 const double br_nav_input = 100;
-const double bl_nav_input = 130;
+const double bl_nav_input = 100;
 
 const double fr_rot_input = 100;
 const double fl_rot_input = 100;
 const double br_rot_input = 100;
 const double bl_rot_input = 100;
 
-const double claw_motor_input = 200;
+const double claw_motor_input = 255;
 
 const double nav_speed = 8; // Get through testing Units: cm/sec   
 const double strafe_speed = 8; //get through testing Units: cm.sec
@@ -225,7 +225,7 @@ double read_servo(){
 }
 
 void open_claw() {
-  claw_servo.write(100);
+  claw_servo.write(90);
 }
 
 double close_claw(){
@@ -234,29 +234,106 @@ double close_claw(){
 
 
 void setup() {
-  move_foward();
+
+  //Enes100.isConnected();
+  //Enes100.begin("Fear The Rover", MATERIAL, AcUro_ID, 1116, TX_PIN, RX_PIN);
+  int count = 0;
+  double sum = 0;
+  double pos;
+  double weight;
+
+  pinMode(deploy_limit, INPUT_PULLUP);
+  pinMode(retract_limit, INPUT_PULLUP);
+
+  /* Initalize objects */
+  scale.begin(loadcell_dout_pin, loadcell_sck_pin);
+  claw_servo.attach(servo_sg_pin);
+  Serial.begin(9600); 
+
+  /* INSERT ALIGN WITH CUBE CODE HERE */
+
+  //based on ultrasonics determine material 
+
+  open_claw();
+  delay(500);
+  deploy_claw();
+  close_claw();
+  delay(1000);
+  retract_claw();
+  open_claw();
   delay(5000);
-  stop_motor();
-  move_backward();
-  delay(5000);
-  stop_motor();
-  move_left();
-  delay(5000);
-  stop_motor();
-  move_right();
-  delay(5000);
-  stop_motor();
-  spin_CW();
-  delay(5000);
-  stop_motor();
-  spin_CCW();
-  delay(5000);
-  stop_motor();
+  weight = abs(scale.get_units(10));
+
+  if (abs(light-weight) < abs(medium-weight))
+    weight_class = "light";
+  else if (abs(medium-weight) < abs(heavy-weight))
+    weight_class = "medium";
+  else 
+    weight_class = "heavy";
+
+  close_claw();
+  delay(100);
+  deploy_claw();
+  open_claw();
+  delay(250);
+  retract_claw();
+
+  Serial.println(weight);
+
+ 
   
+  
+
+  /* MISSION STEPS */
+  //deploy_claw();
+  /*delay(1000);
+  close_claw();
+
+  delay(100);
+  while (count < 10) {
+    delay(100);
+    sum += read_servo();
+    count ++;
+  }
+
+  pos = sum/10;
+
+  if (abs(foam_pos - pos) < abs(plastic_pos - pos))
+    material = "FOAM";
+  else 
+    material = "PLASTIC";
+
+  retract_claw();
+  delay(250);
+  open_claw();
+  delay(5000);
+  
+  weight = abs(scale.get_units(10));
+
+  if (abs(light-weight) < abs(medium-weight))
+    weight_class = "light";
+  else if (abs(medium-weight) < abs(heavy-weight))
+    weight_class = "medium";
+  else 
+    weight_class = "heavy";
+  
+
+  close_claw();
+  delay(100);
+  deploy_claw();
+  open_claw();
+  
+  delay(250);
+  retract_claw();
+
+  Serial.println(material);
+  Serial.println(weight);
+  /* RETURN weight and material */
+
 
 }
 
 void loop() {
-  
+
 
 }
