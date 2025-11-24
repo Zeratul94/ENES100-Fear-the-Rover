@@ -40,15 +40,15 @@ int aruco_ID = 67;
 int loadcell_dout_pin = 38;
 int loadcell_sck_pin = 39;
 int uss_echo_pins[4] = {30, 32, 34, 36}; // Ultrasonic Sensor receive
-int uss_trig_pins[4] = {31, 33, 35, 37}; // Ultrasonic Sensor pulse (should always be HIGH)
+int uss_trig_pins[4] = {31, 33, 35, 37}; // Ultrasonic Sensor pulse
 
 // Movement parameters
 double fr_nav_input = .7 * 255;
 double fl_nav_input = .7 * 255;
 double br_nav_input = .7 * 255;
 double bl_nav_input = .7 * 255;
-double nav_speed = 8; // Get through testing Units: cm/sec
-double strafe_speed = 8; // Get through testing Units: cm.sec
+double nav_speed    = .7 * 20.5; // Arbitrary units
+double strafe_speed = .7 * 20.5; // Arbitrary units
 double fr_rot_input = .7 * 255;
 double fl_rot_input = .7 * 255;
 double br_rot_input = .7 * 255;
@@ -58,10 +58,10 @@ double bl_rot_input = .7 * 255;
 // Navigation parameters
 double grab_distance = 5.0; // cm, ultrasonic sensor distance to cube to grab it with the claw
 double in_front_tolerance = 15.0; // cm, closest we are willing to get to an obstacle before avoiding it
-double heading_epsilon = 5.0; // degrees, acceptable error in heading when navigating
+double heading_epsilon = 4.0; // degrees, acceptable error in heading when navigating
 double centering_epsilon = 1.0; // cm, acceptable error between front sensors when centering at cube
 double grab_lineal_epsilon = 2.0; // cm, acceptable error in distance to cube when grabbing
-double rot_speed = 90.; // degrees, Get through testing Units:rot/sec
+double rot_speed = 32.; // degrees, Get through testing Units:rot/sec
 
 // State values
 MissionState mission_state = GO_TO_CUBE;
@@ -98,7 +98,7 @@ void setup() {
   position[0] = 0; position[1] = 0;
   loopctr = 0;
 
-  move_forward(20.0);
+  spin(90);
 }
 
 void loop() {
@@ -226,7 +226,6 @@ void move_forward(double distance) {
   analogWrite(fr_forward_pin, fr_nav_input);
   analogWrite(bl_forward_pin, bl_nav_input);
   analogWrite(br_forward_pin, br_nav_input);
-  Serial.println(nav_speed);
   delay((distance/nav_speed)*1000);
   analogWrite(fl_forward_pin, 0);
   analogWrite(fr_forward_pin, 0);
@@ -286,6 +285,7 @@ void spin(double degs) {
     analogWrite(bl_forward_pin, 0);
     analogWrite(br_backward_pin, 0);
   } else {
+    degs = -degs;
     analogWrite(fl_backward_pin, fl_nav_input);
     analogWrite(fr_forward_pin, fr_nav_input);
     analogWrite(bl_backward_pin, bl_nav_input);
