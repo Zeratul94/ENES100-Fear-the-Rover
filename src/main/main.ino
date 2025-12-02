@@ -43,10 +43,10 @@ int uss_echo_pins[4] = {30, 32, 34, 36}; // Ultrasonic Sensor receive
 int uss_trig_pins[4] = {31, 33, 35, 37}; // Ultrasonic Sensor pulse
 
 // Movement parameters
-double fr_nav_input = .8 * 255;
+double fr_nav_input = .7 * 255;
 double fl_nav_input = .7 * 255;
 double br_nav_input = .8 * 255;
-double bl_nav_input = .7 * 255;
+double bl_nav_input = .8 * 255;
 double nav_speed    = .7 * 20.5; // Arbitrary units
 double strafe_speed = .7 * 20.5; // Arbitrary units
 double fr_rot_input = .7 * 255;
@@ -113,15 +113,6 @@ void loop() {
   //Serial.println("Starting frame");
   //heading = Enes100.getTheta();
   //position[0] = Enes100.getX(); position[1] = Enes100.getY();
-
-  //Serial.print("Sensor L: ");
-  //Serial.println(sensor_L());
-  //Serial.print("Sensor R: ");
-  //Serial.println(sensor_R());
-  //Serial.print("Sensor FL: ");
-  //Serial.println(sensor_FL());
-  //Serial.print("Sensor FR: ");
-  //Serial.println(sensor_FR());
 
   // switch (mission_state) {
   //   case GO_TO_CUBE:
