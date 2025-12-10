@@ -1,51 +1,75 @@
-
 /*Libraries */
-#include <Servo.h>
 #include "Enes100.h"
 #include "HX711.h"
+#include <Servo.h>
+
 
 /* Objects */
-Servo claw_servo;
 HX711 scale;
+Servo claw_servo;
 
-/* Pins (FILLER VALUES RIGHT NOW)*/
-const int fr_foward_pin = 0;     //PWM digital
-const int fr_backward_pin = 1;   //PWM digital
+/* DRIVE PINS */
+const int fr_foward_pin = 5;     //PWM digital
+const int fr_backward_pin = 4;   //PWM digital
 
-const int fl_foward_pin = 2;     //PWM digital
-const int fl_backward_pin = 3;   //PWM digital
+const int fl_foward_pin = 10;     //PWM digital
+const int fl_backward_pin = 11;   //PWM digital
 
-const int br_foward_pin = 4;     //PWM digital
-const int br_backward_pin = 5;   //PWM digital
+const int br_foward_pin = 2;     //PWM digital
+const int br_backward_pin = 3;   //PWM digital
 
-const int bl_foward_pin = 6;     //PWM digital
-const int bl_backward_pin = 7;   //PWM digital
+const int bl_foward_pin = 8;     //PWM digital
+const int bl_backward_pin = 9;   //PWM digital
 
-const int claw_foward_pin = 8;   //PWM digital
-const int claw_backward_pin = 9; //PWM digital
+/* SERVO PINS */
+const int servo_sg_pin = 6;     //PWM digital
+const int servo_feedback = 0;   //analog
 
-const int servo_sg_pin = 10;     //PWM digital
-const int servo_feedback = 11;   //analog
+/* CLAW MOTOR PINS */
+const int retract_pin = 13;     //PWM digital
+const int deploy_pin = 12;      //PWM digital
 
-const int loadcell_dout_pin = 12;
-const int loadcell_sck_pin = 13;
+/* LOADCELL PINS */
+const int loadcell_dout_pin = 38;  //digital
+const int loadcell_sck_pin = 39;   //digital
+
+/* COMM PINS */
+const int TX_PIN = 14;  //COMM
+const int RX_PIN = 15;  //COMM
+
+/* LIMIT SIWTCH PINS (FILLER)*/
+const int deploy_limit = 47;  //digital
+const int retract_limit = 46; //digital
 
 /* Other constants (FILLER VALUES RIGHT NOW) */
-const double fr_nav_input = .15;
-const double fl_nav_input = .15;
-const double br_nav_input = .15;
-const double bl_nav_input = .15;
+const double fr_nav_input = 100;
+const double fl_nav_input = 100;
+const double br_nav_input = 100;
+const double bl_nav_input = 100;
+
+const double fr_rot_input = 100;
+const double fl_rot_input = 100;
+const double br_rot_input = 100;
+const double bl_rot_input = 100;
+
+const double claw_motor_no_load_input = 100;
+const double claw_motor_load_input = 255;
 
 const double nav_speed = 8; // Get through testing Units: cm/sec   
 const double strafe_speed = 8; //get through testing Units: cm.sec
+const double rot_speed = 3.14/2; // Get through testing Units:rads/sec
 
-const double fr_rot_input = .15;
-const double fl_rot_input = .15;
-const double br_rot_input = .15;
-const double bl_rot_input = .15;
+const double light = 337628; //NEED TO CHANGE
+const double medium = 286715; //NEED TO CHANGE
+const double heavy = 229685; //NEED TO CHANGE
 
-const double rot_speed = 3.14/2; // Get through testing Units:rot/sec
+double foam_pos = 150; //FILLER 
+double plastic_pos = 180; //FILLER
 
+String material;
+String weight_class;
+
+int AcUro_ID = 257;
 
 //distance in cm
 void move_foward(double distance) {
@@ -58,6 +82,13 @@ void move_foward(double distance) {
   analogWrite(fr_foward_pin, 0);
   analogWrite(bl_foward_pin, 0);
   analogWrite(br_foward_pin, 0);
+}
+
+void move_foward() {
+  analogWrite(fl_foward_pin, fl_nav_input);
+  analogWrite(fr_foward_pin, fr_nav_input);
+  analogWrite(bl_foward_pin, bl_nav_input);
+  analogWrite(br_foward_pin, br_nav_input);
 }
 
 //distance in cm
@@ -73,6 +104,13 @@ void move_backward(double distance) {
   analogWrite(br_backward_pin, 0);
 }
 
+void move_backward() {
+  analogWrite(fl_backward_pin, fl_nav_input);
+  analogWrite(fr_backward_pin, fr_nav_input);
+  analogWrite(bl_backward_pin, bl_nav_input);
+  analogWrite(br_backward_pin, br_nav_input);
+}
+
 //distance in cm
 void move_right(double distance) {
   analogWrite(fl_foward_pin, fl_nav_input);
@@ -84,6 +122,13 @@ void move_right(double distance) {
   analogWrite(fr_backward_pin, 0);
   analogWrite(bl_backward_pin, 0);
   analogWrite(br_foward_pin, 0);
+}
+
+void move_right() {
+  analogWrite(fl_foward_pin, fl_nav_input);
+  analogWrite(fr_backward_pin, fr_nav_input);
+  analogWrite(bl_backward_pin, bl_nav_input);
+  analogWrite(br_foward_pin, br_nav_input);
 }
 
 //distance in cm
@@ -99,6 +144,13 @@ void move_left(double distance) {
   analogWrite(br_backward_pin, 0);
 }
 
+void move_left() {
+  analogWrite(fl_backward_pin, fl_nav_input);
+  analogWrite(fr_foward_pin, fr_nav_input);
+  analogWrite(bl_foward_pin, bl_nav_input);
+  analogWrite(br_backward_pin, br_nav_input);
+}
+
 void spin_CCW(double radians) {
   analogWrite(fl_backward_pin, fl_nav_input);
   analogWrite(fr_foward_pin, fr_nav_input);
@@ -109,6 +161,13 @@ void spin_CCW(double radians) {
   analogWrite(fr_foward_pin, 0);
   analogWrite(bl_backward_pin, 0);
   analogWrite(br_foward_pin, 0);
+}
+
+void spin_CCW() {
+  analogWrite(fl_backward_pin, fl_nav_input);
+  analogWrite(fr_foward_pin, fr_nav_input);
+  analogWrite(bl_backward_pin, bl_nav_input);
+  analogWrite(br_foward_pin, br_nav_input);
 }
 
 void spin_CW(double radians) {
@@ -123,24 +182,121 @@ void spin_CW(double radians) {
   analogWrite(br_backward_pin, 0);
 }
 
+void spin_CW() {
+  analogWrite(fl_foward_pin, fl_nav_input);
+  analogWrite(fr_backward_pin, fr_nav_input);
+  analogWrite(bl_foward_pin, bl_nav_input);
+  analogWrite(br_backward_pin, br_nav_input);
+}
+
+
+void stop_motor() {
+  analogWrite(fl_foward_pin, 0);
+  analogWrite(fl_backward_pin, 0);
+  analogWrite(fr_foward_pin, 0);
+  analogWrite(fr_backward_pin, 0);
+  analogWrite(bl_foward_pin, 0);
+  analogWrite(bl_backward_pin, 0);
+  analogWrite(br_foward_pin, 0);
+  analogWrite(br_backward_pin, 0);
+}
+
+void deploy_claw(double input) {
+  
+  while (digitalRead(deploy_limit) == HIGH)
+    analogWrite(deploy_pin, input);
+
+  analogWrite(deploy_pin, 0);  
+  
+}
+
+void retract_claw(double input) {
+  while (digitalRead(retract_limit) == HIGH)
+    analogWrite(retract_pin, input);
+
+  analogWrite(retract_pin, 0); 
+}
+
 void set_servo(double angle) {
   claw_servo.write(angle);
 }
 
-double read_servo(double angle){
+double read_servo(){
   return analogRead(servo_feedback);
 }
 
+void open_claw() {
+  claw_servo.write(90);
+}
+
+double close_claw(){
+  claw_servo.write(130);
+}
+
+
 void setup() {
-  //instantiate objects
-  claw_servo.attach(servo_sg_pin);
+
+  
+  //Enes100.isConnected();
+  //Enes100.begin("Fear The Rover", MATERIAL, AcUro_ID, 1116, TX_PIN, RX_PIN);
+  
+  int count = 0;
+  double sum = 0;
+  double pos;
+  double weight;
+
+  pinMode(deploy_limit, INPUT_PULLUP);
+  pinMode(retract_limit, INPUT_PULLUP);
+
+
+  
+  /* Initalize objects */
+  
+  
   scale.begin(loadcell_dout_pin, loadcell_sck_pin);
+  claw_servo.attach(servo_sg_pin);
+  Serial.begin(9600); 
+
+  /* INSERT ALIGN WITH CUBE CODE HERE */
+
+  /* based on ultrasonics determine material */
+  
+  
+  open_claw();
+  delay(500);
+  deploy_claw(claw_motor_no_load_input);
+  delay(500);
+  close_claw();
+  delay(1000);
+  retract_claw(claw_motor_load_input);
+  delay(500);
+  open_claw();
+  delay(5000);
+  weight = abs(scale.get_units(10));
+
+  if (abs(light-weight) < abs(medium-weight))
+    weight_class = "light";
+  else if (abs(medium-weight) < abs(heavy-weight))
+    weight_class = "medium";
+  else 
+    weight_class = "heavy";
+
+  close_claw();
+  delay(100);
+  deploy_claw(claw_motor_load_input);
+  open_claw();
+  delay(250);
+  retract_claw(claw_motor_no_load_input);
+
+  Serial.println(weight_class);
+
+  /* SEND TO WIFI weight_class and material */
+  
+ 
 
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+
 
 }
-
-
