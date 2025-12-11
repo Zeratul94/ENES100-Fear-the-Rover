@@ -29,16 +29,18 @@ int br_backward_pin = 2;   // PWM digital
 int bl_forward_pin = 9;     // PWM digital
 int bl_backward_pin = 8;   // PWM digital
 
-int deploy_pin = 13;   // PWM digital
-int retract_pin = 12; // PWM digital
+int retract_pin = 13; // PWM digital
+int deploy_pin = 12;   // PWM digital
 
 int servo_sg_pin = 6;     // PWM digital
 int servo_feedback = 0;   // analog
-int tx_pin = 14; // Wi-Fi Module
-int rx_pin = 15; // Wi-Fi Module
-int aruco_ID = 67;
+
+int tx_pin = 50; // Wi-Fi Module
+int rx_pin = 51; // Wi-Fi Module
+
 int loadcell_dout_pin = 38;
 int loadcell_sck_pin = 39;
+
 int uss_echo_pins[4] = {30, 32, 34, 36}; // Ultrasonic Sensor receive
 int uss_trig_pins[4] = {31, 33, 35, 37}; // Ultrasonic Sensor pulse
 
@@ -54,12 +56,20 @@ double fl_rot_input = .7 * 255;
 double br_rot_input = .7 * 255;
 double bl_rot_input = .7 * 255;
 
+// Mission parameters
+int aruco_ID = 257;
+
+const double claw_motor_no_load_input = 100;
+const double claw_motor_load_input = 255;
+
+const double light = 337628; //NEED TO CHANGE
+const double medium = 286715; //NEED TO CHANGE
+const double heavy = 229685; //NEED TO CHANGE
 
 // Navigation parameters
 double grab_distance = 5.0; // cm, ultrasonic sensor distance to cube to grab it with the claw
 double in_front_tolerance = 7.5; // cm, closest we are willing to get to an obstacle before avoiding it
 double otv_width = 25.;
-double heading_epsilon = 4.0; // degrees, acceptable error in heading when navigating
 double centering_epsilon = 1.0; // cm, acceptable error between front sensors when centering at cube
 double grab_lineal_epsilon = 2.0; // cm, acceptable error in distance to cube when grabbing
 double rot_speed = 32.; // degrees, Get through testing Units:rot/sec
@@ -104,11 +114,6 @@ void setup() {
   heading = 0.;
   position[0] = 0; position[1] = 0;
   loopctr = 0;
-
-  analogWrite(deploy_pin, 0);
-  analogWrite(retract_pin, 255);
-  delay(500);
-  analogWrite(retract_pin, 0);
 }
 
 void loop() {
@@ -189,24 +194,17 @@ void identify_material() {
 }
 
 int detect_material() {
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(5);
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
- 
-  // Read the signal from the sensor
   float cm = sensor_FR();
   float cm2 = sensor_FL();
   
   delay(500);
 
-  if (cm == 805 || inches == 316 || cm2 == 805 || inches2 == 316) {
+  if (cm >= 100 || cm2 >= 100) {
     Serial.println("Read - ");
     Serial.print(cm);
     return 1;
   }
-  else if (cm <= 30 || inches <= 10 || cm2 <= 30 || inches2 <= 10) {
+  else if (cm <= 30 || cm2 <= 30) {
     Serial.println("Read - ");
     Serial.print(cm);
     return 2;
@@ -248,12 +246,12 @@ void grab_and_weigh() {
 
 void navigate_to_endzone() {
   if loopctr == 0 {
-    spin(-heading);
+    spin(heading);
   }
 
   // Loop through these instructions until we get there
   if (!in_endzone) {
-    if (close_enough(heading, 0, 0.0872664626)) { // If we're pointing the right way...
+    if (close_enough(heading, 0, 0.heading_epsilon)) { // If we're pointing the right way...
       // Either avoid obstacles or move forward
       if (sensorBeyond(sensor_FL(), in_front_tolerance) && sensorBeyond(sensor_FR(), in_front_tolerance)) {
         if (wasJustStrafing) {
@@ -379,24 +377,24 @@ void move_left(double distance) {
 }
 
 // degrees > 0 means CW, < 0 means CCW
-void spin(double degs) {
-  if (degs >= 0) {
+void spin(double rads) {
+  if (rads >= 0) {
     analogWrite(fl_forward_pin, fl_nav_input);
     analogWrite(fr_backward_pin, fr_nav_input);
     analogWrite(bl_forward_pin, bl_nav_input);
     analogWrite(br_backward_pin, br_nav_input);
-    delay((degs/rot_speed)*1000);
+    delay(rads * rot_speed * 1000);
     analogWrite(fl_forward_pin, 0);
     analogWrite(fr_backward_pin, 0);
     analogWrite(bl_forward_pin, 0);
     analogWrite(br_backward_pin, 0);
   } else {
-    degs = -degs;
+    rads = -rads;
     analogWrite(fl_backward_pin, fl_nav_input);
     analogWrite(fr_forward_pin, fr_nav_input);
     analogWrite(bl_backward_pin, bl_nav_input);
     analogWrite(br_forward_pin, br_nav_input);
-    delay((degs/rot_speed)*1000);
+    delay(rads * rot_speed * 1000);
     analogWrite(fl_backward_pin, 0);
     analogWrite(fr_forward_pin, 0);
     analogWrite(bl_backward_pin, 0);
