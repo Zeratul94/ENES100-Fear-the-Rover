@@ -255,6 +255,9 @@ void setup() {
   double pos;
   double weight;
 
+  pinMode(deploy_limit, INPUT_PULLUP);
+  pinMode(retract_limit, INPUT_PULLUP);
+
   for (int i=0; i<4; i++) {
     pinMode(uss_trig_pins[i], OUTPUT);
     digitalWrite(uss_trig_pins[i], LOW); // Default to LOW
