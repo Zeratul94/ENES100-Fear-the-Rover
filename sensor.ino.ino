@@ -270,9 +270,9 @@ void setup() {
   Serial.begin(9600);
 
   //navigate to the mission
-  spin(startheading);
+  spin(startheading); //point towards direction 0
 
-  if (startheading > 0){
+  if (startheading > 0){ 
     spin(PI/2);
   } else {
     spin(-PI/2);
@@ -314,9 +314,8 @@ void setup() {
   Serial.println(weight_class);
 
   /* SEND TO WIFI weight_class and material */
-  
- 
-
+  startheading = Enes100.getTheta();
+  spin(startheading); //point towards direction 0
 }
 
 void loop() {
