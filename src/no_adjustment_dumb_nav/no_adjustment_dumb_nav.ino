@@ -41,6 +41,9 @@ int rx_pin = 51; // Wi-Fi Module
 int loadcell_dout_pin = 38;
 int loadcell_sck_pin = 39;
 
+const int deploy_limit = 47;  // Limit switch for lowering claw, PWM digital
+const int retract_limit = 46; // Limiy switch for raising claw, PWM digital
+
 int uss_echo_pins[4] = {30, 32, 34, 36}; // Ultrasonic Sensor receive
 int uss_trig_pins[4] = {31, 33, 35, 37}; // Ultrasonic Sensor pulse
 
@@ -72,7 +75,7 @@ double in_front_tolerance = 7.5; // cm, closest we are willing to get to an obst
 double otv_width = 25.;
 double centering_epsilon = 1.0; // cm, acceptable error between front sensors when centering at cube
 double grab_lineal_epsilon = 2.0; // cm, acceptable error in distance to cube when grabbing
-double rot_speed = 32.; // degrees, Get through testing Units:rot/sec
+double rot_speed = 1.66666666667; // degrees, Get through testing Units:rot/sec
 
 // State values
 MissionState mission_state = GO_TO_CUBE;
@@ -86,12 +89,13 @@ bool wasJustStrafing = false;
 
 short loopctr;
 double startpos[2];
+double startheading;
 
 void setup() {
   // Initializes ENES100 transmit/receive
-  Serial.begin(9600);
+  //Serial.begin(9600);
   Enes100.isConnected();
-  Enes100.begin("Fear The Rover", MATERIAL, aruco_ID, 1201, tx_pin, rx_pin);
+  Enes100.begin("Fear The monster", MATERIAL, aruco_ID, 1201, tx_pin, rx_pin); //room 1116
   Enes100.println("Fear the Rover connected!");
   delay(1000);
 
@@ -111,22 +115,25 @@ void setup() {
 
   // Initialize state
   mission_state = GO_TO_CUBE;
-  heading = 0.;
+  heading = PI/2;
   position[0] = 0; position[1] = 0;
   loopctr = 0;
+
+  delay(1000);
+  startheading = Enes100.getTheta();
+  startpos[0] = Enes100.getX(); startpos[1] = Enes100.getY();
 }
 
 void loop() {
-  navigate_to_mission();
   heading = Enes100.getTheta();
   position[0] = Enes100.getX(); position[1] = Enes100.getY();
 
+  if (position[0] >= 1.45) {
+    in_endzone = true;
+  }
   switch (mission_state) {
     case GO_TO_CUBE:
       navigate_to_mission();
-      break;
-    case ADJUST_POSITION:
-      adjust_position();
       break;
     case IDENTIFY_CUBE:
       identify_material();
@@ -149,7 +156,11 @@ void loop() {
 }
 
 void navigate_to_mission() {
-  spin(startheading); //point towards direction 0
+
+  Enes100.println("Going to mission...");
+  Enes100.println(startheading);
+
+  spin(startheading); // point towards direction 0
 
   if (startheading > 0){ 
     spin(PI/2);
@@ -157,13 +168,18 @@ void navigate_to_mission() {
     spin(-PI/2);
   }
 
-  move_forward(78); //cm
+  move_forward(75.5); //cm
+
+  mission_state = IDENTIFY_CUBE;
 }
 
 void identify_material() {
   int material_reads_foam = 0;
   int material_reads_plastic = 0;
+
+  int attempts = 0;
   material_test:
+  attempts++;
   for (int i=0; i<5; i++) {
     switch (detect_material()) {
       case 1:
@@ -178,18 +194,20 @@ void identify_material() {
   }
 
   if (material_reads_plastic > (material_reads_foam + 1)) {
-    material = "Plastic";
     Serial.println("The cube is plastic!");
-    mission_state += 1;
+    mission_state = GRAB_CUBE;
     return;
   } else if (material_reads_foam > (material_reads_plastic + 1)) {
-    material = "Foam";
     Serial.println("The cube is foam!");
-    mission_state += 1;
+    mission_state = GRAB_CUBE;
     return;
   } else {
     Serial.println("Test inconclusive; checking again...");
-    goto material_test;
+    if (attempts <= 3) {goto material_test;}
+    else {
+      mission_state = GRAB_CUBE;
+      return;
+    }
   }
 }
 
@@ -213,6 +231,7 @@ int detect_material() {
 }
 
 void grab_and_weigh() {
+  Serial.println("It's Julia's fault.");
   open_claw();
   delay(500);
   deploy_claw(claw_motor_no_load_input);
@@ -223,7 +242,7 @@ void grab_and_weigh() {
   delay(500);
   open_claw();
   delay(5000);
-  weight = abs(scale.get_units(10));
+  double weight = abs(scale.get_units(10));
 
   if (abs(light-weight) < abs(medium-weight))
     Enes100.println("The cube is in weight class Light.");
@@ -239,16 +258,13 @@ void grab_and_weigh() {
   delay(250);
   retract_claw(claw_motor_no_load_input);
 
-  mission_state += 1;
+  mission_state = NAVIGATE_ENDZONE;
   loopctr = 0;
+  spin(heading);
   return;
 }
 
 void navigate_to_endzone() {
-  if loopctr == 0 {
-    spin(heading);
-  }
-
   // Loop through these instructions until we get there
   if (!in_endzone) {
     // This is the dumb version; don't bother checking or correcting heading after the initial swivel
@@ -275,6 +291,8 @@ void navigate_to_endzone() {
         // If we've reached the right wall, after checking the left wall,
         // there is no way forward! Get angry.
         mission_state = 5; // Panic state
+        in_endzone = true;
+        return;
       } else { move_right(in_front_tolerance*2); wasJustStrafing = true; }
     }
   }
@@ -370,24 +388,24 @@ void move_left(double distance) {
 }
 
 // degrees > 0 means CW, < 0 means CCW
-void spin(double degs) {
-  if (degs >= 0) {
+void spin(double rads) {
+  if (rads >= 0) {
     analogWrite(fl_forward_pin, fl_nav_input);
     analogWrite(fr_backward_pin, fr_nav_input);
     analogWrite(bl_forward_pin, bl_nav_input);
     analogWrite(br_backward_pin, br_nav_input);
-    delay((degs/rot_speed)*1000);
+    delay((rads*rot_speed)*1000);
     analogWrite(fl_forward_pin, 0);
     analogWrite(fr_backward_pin, 0);
     analogWrite(bl_forward_pin, 0);
     analogWrite(br_backward_pin, 0);
   } else {
-    degs = -degs;
+    rads = -rads;
     analogWrite(fl_backward_pin, fl_nav_input);
     analogWrite(fr_forward_pin, fr_nav_input);
     analogWrite(bl_backward_pin, bl_nav_input);
     analogWrite(br_forward_pin, br_nav_input);
-    delay((degs/rot_speed)*1000);
+    delay((rads*rot_speed)*1000);
     analogWrite(fl_backward_pin, 0);
     analogWrite(fr_forward_pin, 0);
     analogWrite(bl_backward_pin, 0);
@@ -396,13 +414,13 @@ void spin(double degs) {
 }
 
 void stop_motor() {
-  analogWrite(fl_foward_pin, 0);
+  analogWrite(fl_forward_pin, 0);
   analogWrite(fl_backward_pin, 0);
-  analogWrite(fr_foward_pin, 0);
+  analogWrite(fr_forward_pin, 0);
   analogWrite(fr_backward_pin, 0);
-  analogWrite(bl_foward_pin, 0);
+  analogWrite(bl_forward_pin, 0);
   analogWrite(bl_backward_pin, 0);
-  analogWrite(br_foward_pin, 0);
+  analogWrite(br_forward_pin, 0);
   analogWrite(br_backward_pin, 0);
 }
 
