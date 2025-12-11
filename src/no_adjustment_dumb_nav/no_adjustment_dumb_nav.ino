@@ -128,7 +128,7 @@ void loop() {
   heading = Enes100.getTheta();
   position[0] = Enes100.getX(); position[1] = Enes100.getY();
 
-  if (position[0] >= 1.45) {
+  if (position[0] >= 3.7) {
     in_endzone = true;
   }
   switch (mission_state) {
@@ -455,3 +455,4 @@ void open_claw() {
 double close_claw(){
   claw_servo.write(130);
 }
+
