@@ -132,6 +132,9 @@ void loop() {
     case NAVIGATE_ENDZONE:
       navigate_to_endzone();
       break;
+    case 5:
+        Enes100.println("PANIC! No clear path found!");
+        break;
     default:
       Enes100.println("PANIC! Undefined mission state!");
       break;
@@ -274,7 +277,6 @@ void navigate_to_endzone() {
         if (!sensorBeyond(sensor_R(), in_front_tolerance*1.75)) {
           // If we've reached the right wall, after checking the left wall,
           // there is no way forward! Get angry.
-          //Enes100.println("PANIC! No clear path found!");
           mission_state = 5; // Panic state
         } else { move_right(in_front_tolerance*2); wasJustStrafing = true; }
       }
