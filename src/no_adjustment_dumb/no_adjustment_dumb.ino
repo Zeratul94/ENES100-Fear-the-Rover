@@ -11,9 +11,9 @@ HX711 scale;
 
 enum MissionState{
   GO_TO_CUBE,
-  ADJUST_POSITION,
+  // ADJUST_POSITION,
+  IDENTIFY_CUBE,
   GRAB_CUBE,
-  DROP_CUBE,
   NAVIGATE_ENDZONE
 };
 
@@ -110,21 +110,29 @@ void setup() {
 
 void loop() {
   navigate_to_mission();
-  //Serial.println("Starting frame");
-  //heading = Enes100.getTheta();
-  //position[0] = Enes100.getX(); position[1] = Enes100.getY();
+  heading = Enes100.getTheta();
+  position[0] = Enes100.getX(); position[1] = Enes100.getY();
 
-  // switch (mission_state) {
-  //   case GO_TO_CUBE:
-  //     navigate_to_mission();
-  //     break;
-  //   // case ADJUST_POSITION:
-  //   //   adjust_position();
-  //   //   break;
-  //   default:
-  //     Enes100.println("PANIC! Undefined mission state!");
-  //     break;
-  // }
+  switch (mission_state) {
+    case GO_TO_CUBE:
+      navigate_to_mission();
+      break;
+    case ADJUST_POSITION:
+      adjust_position();
+      break;
+    case IDENTIFY_CUBE:
+      identify_material();
+      break;
+    case GRAB_CUBE:
+      grab_and_weigh();
+      break;
+    case NAVIGATE_ENDZONE:
+      navigate_to_endzone();
+      break;
+    default:
+      Enes100.println("PANIC! Undefined mission state!");
+      break;
+  }
 
   loopctr++;
 }
@@ -144,7 +152,7 @@ void navigate_to_mission() {
     // If it's not clear, we must have gotten to the cube
     } else {
       Enes100.println("Cube detected!");
-      mission_state = ADJUST_POSITION;
+      mission_state += 1;
       loopctr = 0;
     }
   // If we're facing the wrong way, adjust
@@ -153,43 +161,105 @@ void navigate_to_mission() {
   }
 }
 
-// Place the OTV so that both sensors pick up the cube
-// GEDALYA ASSUMES that this will mean the cube is centered and at
-// grabbing distance
-void adjust_position() {
-  Enes100.println("Adjusting position...");
-  bool left_detect = sensor_FL() <= grab_distance;
-  bool right_detect = sensor_FR() <= grab_distance;
-  bool centered = close_enough(sensor_FL(), sensor_FR(), centering_epsilon);
-  
-  if (left_detect && right_detect && centered) {
-    if (close_enough((sensor_FL() + sensor_FR())/2, grab_distance, grab_lineal_epsilon)) {
-      Enes100.println("Positioned and ready!");
-      mission_state = GRAB_CUBE;
-      loopctr = 0;
-      return;
-    } else {
-      move_backward(grab_lineal_epsilon/2);
-      return;
+void identify_material() {
+  int material_reads_foam = 0;
+  int material_reads_plastic = 0;
+  material_test:
+  for (int i=0; i<5; i++) {
+    switch (detect_material()) {
+      case 1:
+        material_reads_foam += 1;
+        break;
+      case 2:
+        material_reads_plastic += 1;
+        break;
+      default:
+        break;
     }
   }
 
-  if (left_detect) {
-    move_left(centering_epsilon/2);
-  } else if (right_detect) {
-    move_right(centering_epsilon/2);
-  }
-
-  if (!left_detect && !right_detect) {
-    move_forward(grab_lineal_epsilon/2);
+  if (material_reads_plastic > (material_reads_foam + 1)) {
+    material = "Plastic";
+    Serial.println("The cube is plastic!");
+    mission_state += 1;
     return;
+  } else if (material_reads_foam > (material_reads_plastic + 1)) {
+    material = "Foam";
+    Serial.println("The cube is foam!");
+    mission_state += 1;
+    return;
+  } else {
+    Serial.println("Test inconclusive; checking again...");
+    goto material_test;
   }
 }
 
+int detect_material() {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(5);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+ 
+  // Read the signal from the sensor
+  float cm = sensor_FR();
+  float cm2 = sensor_FL();
+  
+  delay(500);
+
+  if (cm == 805 || inches == 316 || cm2 == 805 || inches2 == 316) {
+    Serial.println("Read - ");
+    Serial.print(cm);
+    return 1;
+  }
+  else if (cm <= 30 || inches <= 10 || cm2 <= 30 || inches2 <= 10) {
+    Serial.println("Read - ");
+    Serial.print(cm);
+    return 2;
+  }
+  return -1;
+}
+
+void grab_and_weigh() {
+  open_claw();
+  delay(500);
+  deploy_claw(claw_motor_no_load_input);
+  delay(500);
+  close_claw();
+  delay(1000);
+  retract_claw(claw_motor_load_input);
+  delay(500);
+  open_claw();
+  delay(5000);
+  weight = abs(scale.get_units(10));
+
+  if (abs(light-weight) < abs(medium-weight))
+    Enes100.println("The cube is in weight class Light.");
+  else if (abs(medium-weight) < abs(heavy-weight))
+    Enes100.println("The cube is in weight class Medium.");
+  else 
+    Enes100.println("The cube is in weight class Heavy.");
+
+  close_claw();
+  delay(100);
+  deploy_claw(claw_motor_load_input);
+  open_claw();
+  delay(250);
+  retract_claw(claw_motor_no_load_input);
+
+  mission_state += 1;
+  loopctr = 0;
+  return;
+}
+
 void navigate_to_endzone() {
+  if loopctr == 0 {
+    spin(1.57079632679)
+  }
+
   // Loop through these instructions until we get there
   if (!in_endzone) {
-    if (close_enough(heading, 0, 5)) { // If we're pointing the right way...
+    if (close_enough(heading, 0, 0.0872664626)) { // If we're pointing the right way...
       // Either avoid obstacles or move forward
       if (sensorBeyond(sensor_FL(), in_front_tolerance) && sensorBeyond(sensor_FR(), in_front_tolerance)) {
         if (wasJustStrafing) {
