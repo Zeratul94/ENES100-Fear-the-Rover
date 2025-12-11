@@ -11,10 +11,9 @@ HX711 scale;
 
 enum MissionState{
   GO_TO_CUBE,
-  ADJUST_POSITION,
+  // ADJUST_POSITION,
   IDENTIFY_CUBE,
   GRAB_CUBE,
-  DROP_CUBE,
   NAVIGATE_ENDZONE
 };
 
@@ -82,20 +81,23 @@ void setup() {
   // Initializes ENES100 transmit/receive
   Serial.begin(9600);
   Enes100.isConnected();
-  //Enes100.begin("Fear The Rover", MATERIAL, aruco_ID, 1201, tx_pin, rx_pin);
-  //Enes100.println("Connected...");
-  //Enes100.print("Hello World!");
+  Enes100.begin("Fear The Rover", MATERIAL, aruco_ID, 1201, tx_pin, rx_pin);
+  Enes100.println("Fear the Rover connected!");
   delay(1000);
 
-  // Initialize objects
-  claw_servo.attach(servo_sg_pin);
-  scale.begin(loadcell_dout_pin, loadcell_sck_pin);
-  
+
+  // Initialize special pins
   for (int i=0; i<4; i++) {
     pinMode(uss_trig_pins[i], OUTPUT);
     digitalWrite(uss_trig_pins[i], LOW); // Default to LOW
     pinMode(uss_echo_pins[i], INPUT);
   }
+  pinMode(deploy_limit, INPUT_PULLUP);
+  pinMode(retract_limit, INPUT_PULLUP);
+
+  // Initialize objects
+  scale.begin(loadcell_dout_pin, loadcell_sck_pin);
+  claw_servo.attach(servo_sg_pin);
 
   // Initialize state
   mission_state = GO_TO_CUBE;
@@ -111,80 +113,43 @@ void setup() {
 
 void loop() {
   navigate_to_mission();
-  //Serial.println("Starting frame");
-  //heading = Enes100.getTheta();
-  //position[0] = Enes100.getX(); position[1] = Enes100.getY();
+  heading = Enes100.getTheta();
+  position[0] = Enes100.getX(); position[1] = Enes100.getY();
 
-  // switch (mission_state) {
-  //   case GO_TO_CUBE:
-  //     navigate_to_mission();
-  //     break;
-  //   // case ADJUST_POSITION:
-  //   //   adjust_position();
-  //   //   break;
-  //   default:
-  //     Enes100.println("PANIC! Undefined mission state!");
-  //     break;
-  // }
+  switch (mission_state) {
+    case GO_TO_CUBE:
+      navigate_to_mission();
+      break;
+    case ADJUST_POSITION:
+      adjust_position();
+      break;
+    case IDENTIFY_CUBE:
+      identify_material();
+      break;
+    case GRAB_CUBE:
+      grab_and_weigh();
+      break;
+    case NAVIGATE_ENDZONE:
+      navigate_to_endzone();
+      break;
+    default:
+      Enes100.println("PANIC! Undefined mission state!");
+      break;
+  }
 
   loopctr++;
 }
 
 void navigate_to_mission() {
-  // On the first loop, try to face toward the mission
-  if (loopctr == 0) {
-    Enes100.println("Navigating to mission...");
-    spin((90 ? heading < 0 : -90) - heading); // Face toward the mission location
-    return;
-  }
+  spin(startheading); //point towards direction 0
 
-  // Subsequent loops: if we're facing the mission, move up if it's clear!
-  if (close_enough(heading, 90, heading_epsilon) || close_enough(heading, -90, heading_epsilon)) {
-    if (sensor_FL() >= in_front_tolerance && sensor_FR() >= in_front_tolerance) {
-      move_forward(in_front_tolerance);
-    // If it's not clear, we must have gotten to the cube
-    } else {
-      Enes100.println("Cube detected!");
-      mission_state += 1;
-      loopctr = 0;
-    }
-  // If we're facing the wrong way, adjust
+  if (startheading > 0){ 
+    spin(PI/2);
   } else {
-    spin((90 - heading) ? heading > 0 : (-90 - heading)); // Face toward the mission location
-  }
-}
-
-// Place the OTV so that both sensors pick up the cube
-// GEDALYA ASSUMES that this will mean the cube is centered and at
-// grabbing distance
-void adjust_position() {
-  Enes100.println("Adjusting position...");
-  bool left_detect = sensor_FL() <= grab_distance;
-  bool right_detect = sensor_FR() <= grab_distance;
-  bool centered = close_enough(sensor_FL(), sensor_FR(), centering_epsilon);
-  
-  if (left_detect && right_detect && centered) {
-    if (close_enough((sensor_FL() + sensor_FR())/2, grab_distance, grab_lineal_epsilon)) {
-      Enes100.println("Positioned and ready!");
-      mission_state += 1;
-      loopctr = 0;
-      return;
-    } else {
-      move_backward(grab_lineal_epsilon/2);
-      return;
-    }
+    spin(-PI/2);
   }
 
-  if (left_detect) {
-    move_left(centering_epsilon/2);
-  } else if (right_detect) {
-    move_right(centering_epsilon/2);
-  }
-
-  if (!left_detect && !right_detect) {
-    move_forward(grab_lineal_epsilon/2);
-    return;
-  }
+  move_forward(78); //cm
 }
 
 void identify_material() {
@@ -204,7 +169,6 @@ void identify_material() {
     }
   }
 
-
   if (material_reads_plastic > (material_reads_foam + 1)) {
     material = "Plastic";
     Serial.println("The cube is plastic!");
@@ -221,10 +185,72 @@ void identify_material() {
   }
 }
 
+int detect_material() {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(5);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+ 
+  // Read the signal from the sensor
+  float cm = sensor_FR();
+  float cm2 = sensor_FL();
+  
+  delay(500);
+
+  if (cm == 805 || inches == 316 || cm2 == 805 || inches2 == 316) {
+    Serial.println("Read - ");
+    Serial.print(cm);
+    return 1;
+  }
+  else if (cm <= 30 || inches <= 10 || cm2 <= 30 || inches2 <= 10) {
+    Serial.println("Read - ");
+    Serial.print(cm);
+    return 2;
+  }
+  return -1;
+}
+
+void grab_and_weigh() {
+  open_claw();
+  delay(500);
+  deploy_claw(claw_motor_no_load_input);
+  delay(500);
+  close_claw();
+  delay(1000);
+  retract_claw(claw_motor_load_input);
+  delay(500);
+  open_claw();
+  delay(5000);
+  weight = abs(scale.get_units(10));
+
+  if (abs(light-weight) < abs(medium-weight))
+    Enes100.println("The cube is in weight class Light.");
+  else if (abs(medium-weight) < abs(heavy-weight))
+    Enes100.println("The cube is in weight class Medium.");
+  else 
+    Enes100.println("The cube is in weight class Heavy.");
+
+  close_claw();
+  delay(100);
+  deploy_claw(claw_motor_load_input);
+  open_claw();
+  delay(250);
+  retract_claw(claw_motor_no_load_input);
+
+  mission_state += 1;
+  loopctr = 0;
+  return;
+}
+
 void navigate_to_endzone() {
+  if loopctr == 0 {
+    spin(-heading);
+  }
+
   // Loop through these instructions until we get there
   if (!in_endzone) {
-    if (close_enough(heading, 0, 5)) { // If we're pointing the right way...
+    if (close_enough(heading, 0, 0.0872664626)) { // If we're pointing the right way...
       // Either avoid obstacles or move forward
       if (sensorBeyond(sensor_FL(), in_front_tolerance) && sensorBeyond(sensor_FR(), in_front_tolerance)) {
         if (wasJustStrafing) {
@@ -376,10 +402,45 @@ void spin(double degs) {
   }
 }
 
-void set_servo(Servo servo, double angle) {
-  servo.write(angle);
+void stop_motor() {
+  analogWrite(fl_foward_pin, 0);
+  analogWrite(fl_backward_pin, 0);
+  analogWrite(fr_foward_pin, 0);
+  analogWrite(fr_backward_pin, 0);
+  analogWrite(bl_foward_pin, 0);
+  analogWrite(bl_backward_pin, 0);
+  analogWrite(br_foward_pin, 0);
+  analogWrite(br_backward_pin, 0);
 }
 
-double read_servo(double angle){
+void deploy_claw(double input) {
+  
+  while (digitalRead(deploy_limit) == HIGH)
+    analogWrite(deploy_pin, input);
+
+  analogWrite(deploy_pin, 0);  
+  
+}
+
+void retract_claw(double input) {
+  while (digitalRead(retract_limit) == HIGH)
+    analogWrite(retract_pin, input);
+
+  analogWrite(retract_pin, 0); 
+}
+
+void set_servo(double angle) {
+  claw_servo.write(angle);
+}
+
+double read_servo(){
   return analogRead(servo_feedback);
+}
+
+void open_claw() {
+  claw_servo.write(90);
+}
+
+double close_claw(){
+  claw_servo.write(130);
 }

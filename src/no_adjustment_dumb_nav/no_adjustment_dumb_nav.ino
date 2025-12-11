@@ -81,20 +81,23 @@ void setup() {
   // Initializes ENES100 transmit/receive
   Serial.begin(9600);
   Enes100.isConnected();
-  //Enes100.begin("Fear The Rover", MATERIAL, aruco_ID, 1201, tx_pin, rx_pin);
-  //Enes100.println("Connected...");
-  //Enes100.print("Hello World!");
+  Enes100.begin("Fear The Rover", MATERIAL, aruco_ID, 1201, tx_pin, rx_pin);
+  Enes100.println("Fear the Rover connected!");
   delay(1000);
 
-  // Initialize objects
-  claw_servo.attach(servo_sg_pin);
-  scale.begin(loadcell_dout_pin, loadcell_sck_pin);
-  
+
+  // Initialize special pins
   for (int i=0; i<4; i++) {
     pinMode(uss_trig_pins[i], OUTPUT);
     digitalWrite(uss_trig_pins[i], LOW); // Default to LOW
     pinMode(uss_echo_pins[i], INPUT);
   }
+  pinMode(deploy_limit, INPUT_PULLUP);
+  pinMode(retract_limit, INPUT_PULLUP);
+
+  // Initialize objects
+  scale.begin(loadcell_dout_pin, loadcell_sck_pin);
+  claw_servo.attach(servo_sg_pin);
 
   // Initialize state
   mission_state = GO_TO_CUBE;
@@ -129,6 +132,9 @@ void loop() {
     case NAVIGATE_ENDZONE:
       navigate_to_endzone();
       break;
+    case 5:
+      Enes100.println("PANIC! No clear path found!");
+      break;
     default:
       Enes100.println("PANIC! Undefined mission state!");
       break;
@@ -138,27 +144,15 @@ void loop() {
 }
 
 void navigate_to_mission() {
-  // On the first loop, try to face toward the mission
-  if (loopctr == 0) {
-    Enes100.println("Navigating to mission...");
-    spin((90 ? heading < 0 : -90) - heading); // Face toward the mission location
-    return;
+  spin(startheading); //point towards direction 0
+
+  if (startheading > 0){ 
+    spin(PI/2);
+  } else {
+    spin(-PI/2);
   }
 
-  // Subsequent loops: if we're facing the mission, move up if it's clear!
-  if (close_enough(heading, 90, heading_epsilon) || close_enough(heading, -90, heading_epsilon)) {
-    if (sensor_FL() >= in_front_tolerance && sensor_FR() >= in_front_tolerance) {
-      move_forward(in_front_tolerance);
-    // If it's not clear, we must have gotten to the cube
-    } else {
-      Enes100.println("Cube detected!");
-      mission_state += 1;
-      loopctr = 0;
-    }
-  // If we're facing the wrong way, adjust
-  } else {
-    spin((90 - heading) ? heading > 0 : (-90 - heading)); // Face toward the mission location
-  }
+  move_forward(78); //cm
 }
 
 void identify_material() {
@@ -254,45 +248,38 @@ void grab_and_weigh() {
 
 void navigate_to_endzone() {
   if loopctr == 0 {
-    spin(1.57079632679)
+    spin(-heading);
   }
 
   // Loop through these instructions until we get there
   if (!in_endzone) {
-    if (close_enough(heading, 0, 0.0872664626)) { // If we're pointing the right way...
-      // Either avoid obstacles or move forward
-      if (sensorBeyond(sensor_FL(), in_front_tolerance) && sensorBeyond(sensor_FR(), in_front_tolerance)) {
-        if (wasJustStrafing) {
-          if (checked_left) move_right(otv_width);
-          else move_left(otv_width);
-          move_forward(in_front_tolerance * 2);
-          wasJustStrafing = false;
-        }
-        else {
-          move_forward(in_front_tolerance);
-        }
-        checked_left = false;
-        return;
+    // This is the dumb version; don't bother checking or correcting heading after the initial swivel
+    if (sensorBeyond(sensor_FL(), in_front_tolerance) && sensorBeyond(sensor_FR(), in_front_tolerance)) {
+      if (wasJustStrafing) {
+        if (checked_left) move_right(otv_width);
+        else move_left(otv_width);
+        move_forward(in_front_tolerance * 2);
+        wasJustStrafing = false;
       }
-      // Otherwise:
-      // Move left. If we get to the wall without clearing in front, move right
-      if (!checked_left) {
-        if (!sensorBeyond(sensor_L(), in_front_tolerance*1.75)) { checked_left = true; }
-        if (!checked_left) { move_left(in_front_tolerance); wasJustStrafing = true; }
-      } else {
-        if (!sensorBeyond(sensor_R(), in_front_tolerance*1.75)) {
-          // If we've reached the right wall, after checking the left wall,
-          // there is no way forward! Get angry.
-          //Enes100.println("PANIC! No clear path found!");
-          mission_state = 5; // Panic state
-        } else { move_right(in_front_tolerance*2); wasJustStrafing = true; }
+      else {
+        move_forward(in_front_tolerance);
       }
+      checked_left = false;
       return;
     }
-    // Otherwise, fix our heading and then assume we're oriented the right way
-    spin(heading);
-    heading = 0;
-    return;
+    // Otherwise:
+    // Move left. If we get to the wall without clearing in front, move right
+    if (!checked_left) {
+      if (!sensorBeyond(sensor_L(), in_front_tolerance*1.75)) { checked_left = true; }
+      if (!checked_left) { move_left(in_front_tolerance); wasJustStrafing = true; }
+    } else {
+      if (!sensorBeyond(sensor_R(), in_front_tolerance*1.75)) {
+        // If we've reached the right wall, after checking the left wall,
+        // there is no way forward! Get angry.
+        // Enes100.println("PANIC! No clear path found!");
+        mission_state = 5; // Panic state
+      } else { move_right(in_front_tolerance*2); wasJustStrafing = true; }
+    }
   }
 }
 
@@ -411,10 +398,45 @@ void spin(double degs) {
   }
 }
 
-void set_servo(Servo servo, double angle) {
-  servo.write(angle);
+void stop_motor() {
+  analogWrite(fl_foward_pin, 0);
+  analogWrite(fl_backward_pin, 0);
+  analogWrite(fr_foward_pin, 0);
+  analogWrite(fr_backward_pin, 0);
+  analogWrite(bl_foward_pin, 0);
+  analogWrite(bl_backward_pin, 0);
+  analogWrite(br_foward_pin, 0);
+  analogWrite(br_backward_pin, 0);
 }
 
-double read_servo(double angle){
+void deploy_claw(double input) {
+  
+  while (digitalRead(deploy_limit) == HIGH)
+    analogWrite(deploy_pin, input);
+
+  analogWrite(deploy_pin, 0);  
+  
+}
+
+void retract_claw(double input) {
+  while (digitalRead(retract_limit) == HIGH)
+    analogWrite(retract_pin, input);
+
+  analogWrite(retract_pin, 0); 
+}
+
+void set_servo(double angle) {
+  claw_servo.write(angle);
+}
+
+double read_servo(){
   return analogRead(servo_feedback);
+}
+
+void open_claw() {
+  claw_servo.write(90);
+}
+
+double close_claw(){
+  claw_servo.write(130);
 }
