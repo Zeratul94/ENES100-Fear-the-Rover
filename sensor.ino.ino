@@ -37,8 +37,8 @@ int uss_echo_pins[4] = {30, 32, 34, 36}; // Ultrasonic Sensor receive
 int uss_trig_pins[4] = {31, 33, 35, 37}; // Ultrasonic Sensor pulse
 
 /* COMM PINS */
-const int TX_PIN = 14;  //COMM
-const int RX_PIN = 15;  //COMM
+const int TX_PIN = 50;  //COMM
+const int RX_PIN = 51;  //COMM
 
 /* LIMIT SIWTCH PINS (FILLER)*/
 const int deploy_limit = 47;  //digital
