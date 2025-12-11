@@ -269,8 +269,18 @@ void setup() {
   claw_servo.attach(servo_sg_pin);
   Serial.begin(9600);
 
-  /* INSERT ALIGN WITH CUBE CODE HERE */
+  //navigate to the mission
+  spin(startheading);
 
+  if (startheading > 0){
+    spin(PI/2);
+  } else {
+    spin(-PI/2);
+  }
+
+  move_forward(78); //cm
+
+  mission_state = ADJUST_POSITION;
   /* MATERIAL DETECTION - -1 is none detected, 1 is foam, 2 is plastic */
   identify_cube();
   
